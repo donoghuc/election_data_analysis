@@ -338,3 +338,10 @@ remove_vote_counts(connection, cursor, id)
 ```
 
 Replace any double-quotes in Candidate.txt and dictionary.txt with single quotes. I.e., `Rosa Maria 'Rosy' Palomino`, not `Rosa Maria "Rosy" Palomino`.
+
+Linux `file` command will detect the encoding of a file.
+```
+$ file IN_2016_gen.csv 
+IN_2016_gen.csv: ASCII text, with very long lines, with CRLF line terminators
+
+```

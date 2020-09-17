@@ -292,6 +292,9 @@ class SingleDataLoader:
         # set aux_data_dir to None if appropriate
         if self.d["aux_data_dir"] in ["None", ""]:
             self.d["aux_data_dir"] = None
+            self.aux_data_absolute_path = None
+        else:
+            self.aux_data_absolute_path = os.path.join(results_dir, self.d["aux_data_dir"])
 
         # pick mungers (Note: munger_name is comma-separated list of munger names)
         self.munger = dict()
@@ -303,7 +306,7 @@ class SingleDataLoader:
         m_err = dict()
         for mu in self.munger_list:
             self.munger[mu], m_err[mu] = jm.check_and_init_munger(
-                os.path.join(munger_path, mu)
+                os.path.join(munger_path, mu), aux_data_absolute_path=self.aux_data_absolute_path
             )
 
         self.munger_err = ui.consolidate_errors([m_err[mu] for mu in self.munger_list])
@@ -371,7 +374,7 @@ class SingleDataLoader:
                     f_path,
                     self.juris,
                     results_info=results_info,
-                    aux_data_dir=self.d["aux_data_dir"],
+                    aux_data_absolute_path=self.aux_data_absolute_path,
                 )
                 if new_err:
                     err = ui.consolidate_errors([err, new_err])
@@ -698,7 +701,7 @@ class JurisdictionPrepper:
         sub_ru_type: str = "precinct",
         results_file_path=None,
         munger_name=None,
-        aux_data_dir=None,
+        aux_data_absolute_path=None,
         **kwargs,
     ) -> dict:
         """Assumes precincts (or other sub-county reporting units)
@@ -708,7 +711,7 @@ class JurisdictionPrepper:
 
         # get parameters from arguments; otherwise from self.d; otherwise throw error
         kwargs, missing = ui.get_params_to_read_results(
-            self.d, results_file_path, munger_name, aux_data_dir=aux_data_dir
+            self.d, results_file_path, munger_name, aux_data_absolute_path=aux_data_absolute_path
         )
         if missing:
             if results_file_path:
@@ -893,6 +896,12 @@ class JurisdictionPrepper:
             file_dict["results_file_path"] = os.path.join(
                 dir, file_dict["results_file"]
             )
+            if file_dict["aux_data_dir"]:
+                file_dict["aux_data_absolute_path"] = os.path.join(
+                    dir, file_dict["aux_data_dir"]
+                )
+            else:
+                file_dict["aux_data_absolute_path"] = None
             if new_err:
                 error = ui.consolidate_errors([error, new_err])
             if not ui.fatal_error(error):
@@ -911,14 +920,14 @@ class JurisdictionPrepper:
         results_file_path=None,
         results_file=None,
         munger_name=None,
-        aux_data_dir=None
+        aux_data_absolute_path=None
     ) -> dict:
         """Add lines in dictionary.txt and <element>.txt corresponding to munged names not already in dictionary
         or not already in <element>.txt for each <element> in <elements>"""
 
         # get parameters from arguments; otherwise from self.d; otherwise throw error
         kwargs, missing = ui.get_params_to_read_results(
-            self.d, results_file_path, munger_name, aux_data_dir=aux_data_dir
+            self.d, results_file_path, munger_name, aux_data_absolute_path=aux_data_absolute_path
         )
         if missing:
             error = ui.add_new_error(

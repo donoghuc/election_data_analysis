@@ -306,7 +306,7 @@ warning_keys = {
 
 
 def get_params_to_read_results(
-    d: dict, results_file_path=None, munger_name=None, aux_data_dir=None
+    d: dict, results_file_path=None, munger_name=None, aux_data_absolute_path=None
 ) -> (dict, list):
     """get parameters from arguments; otherwise from d;
     return dictionary of parameters, and list of missing parameters"""
@@ -315,8 +315,8 @@ def get_params_to_read_results(
         kwargs["results_file_path"] = results_file_path
     if munger_name:
         kwargs["munger_name"] = munger_name
-    if aux_data_dir:
-        kwargs["aux_data_dir"] = aux_data_dir
+    if aux_data_absolute_path:
+        kwargs["aux_data_absolute_path"] = aux_data_absolute_path
     missing = [x for x in ["results_file_path", "munger_name"] if kwargs[x] is None]
     return kwargs, missing
 
@@ -327,18 +327,18 @@ def read_results(params, error: dict) -> (pd.DataFrame, jm.Munger, dict):
      'munger_name', 'results_file'"""
 
     my_munger_path = os.path.join(params["mungers_dir"], params["munger_name"])
-    if "aux_data_dir" in params.keys():
-        aux_data_dir = params["aux_data_dir"]
+    if "aux_data_absolute_path" in params.keys():
+        aux_data_absolute_path = params["aux_data_absolute_path"]
     else:
-        aux_data_dir = None
+        aux_data_absolute_path = None
 
     # check munger files and (if no error) create munger
-    mu, mu_err = jm.check_and_init_munger(my_munger_path,aux_data_dir=aux_data_dir)
+    mu, mu_err = jm.check_and_init_munger(my_munger_path, aux_data_absolute_path=aux_data_absolute_path)
     error = consolidate_errors([error, mu_err])
     if fatal_error(mu_err):
         wr = pd.DataFrame()
     else:
-        wr, error = read_combine_results(mu, params["results_file_path"], error, aux_data_dir=aux_data_dir)
+        wr, error = read_combine_results(mu, params["results_file_path"], error, aux_data_absolute_path=aux_data_absolute_path)
         wr.columns = [f"{x}_SOURCE" for x in wr.columns]
     return wr, mu, error
 
@@ -438,7 +438,7 @@ def read_combine_results(
     mu: jm.Munger,
     results_file_path: str,
     err: dict,
-    aux_data_dir: str = None,
+    aux_data_absolute_path: str = None,
 ) -> (pd.DataFrame, dict):
     if mu.options["file_type"] in ["concatenated-blocks"]:
         working, new_err = sf.read_concatenated_blocks(results_file_path, mu, None)
@@ -476,10 +476,10 @@ def read_combine_results(
                     return working, err
 
         # merge with auxiliary files (if any)
-        if aux_data_dir is not None:
+        if aux_data_absolute_path is not None:
             # get auxiliary data (includes cleaning and setting (multi-)index of primary key column(s))
             aux_data, new_err = mu.get_aux_data(
-                aux_data_dir,
+                aux_data_absolute_path,
                 None,
             )
             if new_err:
@@ -532,13 +532,13 @@ def new_datafile(
     raw_path: str,
     juris: jm.Jurisdiction,
     results_info: list = None,
-    aux_data_dir: str = None,
+    aux_data_absolute_path: str = None,
 ) -> dict:
     """Guide user through process of uploading data in <raw_file>
     into common data format.
     Assumes cdf db exists already"""
     err = None
-    raw, err = read_combine_results(munger, raw_path, err, aux_data_dir=aux_data_dir)
+    raw, err = read_combine_results(munger, raw_path, err, aux_data_absolute_path=aux_data_absolute_path)
     if fatal_error(err):
         return err
     elif raw.empty:
